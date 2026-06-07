@@ -1,0 +1,417 @@
+new_dataset_name: 'domain'
+
+organs:
+  - 'Niere'
+
+excel_files:
+  - name: 'Unter_20_24'
+    sheets:
+      - name: 'dwh Spender'
+        columns_to_keep:
+          - 'dwh.Spender.Spender_Alter'
+          - 'dwh.Spender.Spender_Geschlecht'
+          - 'dwh.Spender.Spender_BMI'
+          - 'dwh.Spender.Spender_Gewicht'
+      - name: 'dwh Monitoring'
+        columns_to_keep:
+          - 'dwh.Monitoring.Diurese_Stunden'
+          - 'dwh.Monitoring.Diurese_Menge'
+          - 'dwh.Monitoring.Erhebung_Zeitpunkt'
+        sort_by_columns:
+          - 'SPM_ID'
+          - 'dwh.Monitoring.Erhebung_Zeitpunkt'
+        group_by_columns:
+          - 'SPM_ID'
+        first_valid_columns:
+          - 'dwh.Monitoring.Diurese_Stunden'
+          - 'dwh.Monitoring.Diurese_Menge'
+
+  - name: 'Diag_20_24'
+    sheets:
+      - name: 'dwh Diagnose Tod'
+        columns_to_keep:
+          - 'Tod_ICD_10_Code'
+      - name: 'dwh Diagnose Hypotension'
+        columns_to_keep:
+          - 'Hypotension_Diagnose'
+      - name: 'dwh Diagnose Diabetes'
+        columns_to_keep:
+          - 'Diabetes_Diagnose'
+      - name: 'dwh Diagnose Hepatitis C'
+        columns_to_keep:
+          - 'Hepatitis_C_Diagnose'
+      - name: 'dwh Diagnose Rauchen'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'Rauchen_ICD_10_Code'
+      - name: 'dwh Diagnose Alkohol'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'Alkohol_ICD_10_Code'
+      - name: 'dwh Diagnose Drogen'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'Drogen_Diagnose'
+      - name: 'dwh Diagnose Reanimation'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'Reanimation_Diagnose_Zeitpunkt_von'
+          - 'Reanimation_Diagnose_Zeitpunkt_bis'
+          - 'Reanimation_Diagnose'
+
+
+  - name: 'Labor_20_24'
+    sheets:
+      - name: 'dwh Labor KCBU'
+        columns_to_keep:
+          - 'dwh.Labor_KCBU.KC_Kreatinin'
+          - 'dwh.Labor_KCBU.KC_Haemoglobin'
+          - 'dwh.Labor_KCBU.KC_Haematokrit'
+          - 'dwh.Labor_KCBU.KC_Thrombozyten'
+          - 'dwh.Labor_KCBU.KC_Natrium'
+          - 'dwh.Labor_KCBU.KC_Kalium'
+          - 'dwh.Labor_KCBU.KC_Harnstoff'
+          - 'dwh.Labor_KCBU.KC_Glukose'
+          - 'dwh.Labor_KCBU.KC_Chlorid'
+          - 'dwh.Labor_KCBU.KC_Phosphat'
+          - 'dwh.Labor_KCBU.KC_Albumin'
+          - 'dwh.Labor_KCBU.KC_Kalzium_gesamt'
+          - 'dwh.Labor_KCBU.KC_INR'
+          - 'dwh.Labor_KCBU.KC_Bilirubin_gesamt'
+          - 'dwh.Labor_KCBU.KC_Alkalische_Phosphatase'
+          - 'dwh.Labor_KCBU.Blutgase_FIO2'
+          - 'dwh.Labor_KCBU.Blutgase_paCO2'
+          - 'dwh.Labor_KCBU.Blutgase_paO2'
+          - 'dwh.Labor_KCBU.KC_Laktat'
+          - 'dwh.Labor_KCBU.Blutgase_O2_Saettigung'
+          - 'dwh.Labor_KCBU.KC_Lipase'
+          - 'dwh.Labor_KCBU.KC_Gesamtprotein'
+          - 'dwh.Labor_KCBU.Urin_pH'
+          - 'dwh.Labor_KCBU.Urin_Glukose'
+          - 'dwh.Labor_KCBU.Urin_HB'
+          - 'dwh.Labor_KCBU.Urin_Ketonkoerper'
+          - 'dwh.Labor_KCBU.Urin_Nitrit'
+          - 'dwh.Labor_KCBU.Urin_Sediment_Leukozyten'
+          - 'dwh.Labor_KCBU.KC_LDH'
+          - 'dwh.Labor_KCBU.KC_Fibrinogen'
+          - 'dwh.Labor_KCBU.KC_Gamma_GT'
+          - 'dwh.Labor_KCBU.KC_Amylase'
+          - 'dwh.Labor_KCBU.Blutgase_pH'
+          - 'dwh.Labor_KCBU.KC_CKMB'
+          - 'dwh.Labor_KCBU.KC_Leukozyten'
+          - 'dwh.Labor_KCBU.Blutgase_Base_Excess'
+          - 'dwh.Labor_KCBU.Urin_Sediment_Bakterien'
+          - 'dwh.Labor_KCBU.KC_HbA1c'
+          - 'Probe Zeitpunkt'
+        sort_by_columns:
+          - 'SPM_ID'
+          - 'Probe Zeitpunkt'
+
+        combine:
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Kreatinin'
+            method: 'lowest'
+            new_name: 'Kreatinin'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Haemoglobin'
+            method: 'first'
+            new_name: 'Haemoglobin'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Haematokrit'
+            method: 'first'
+            new_name: 'Haematokrit'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Thrombozyten'
+            method: 'first'
+            new_name: 'Thrombozyten'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Natrium'
+            method: 'first'
+            new_name: 'Natrium'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Kalium'
+            method: 'first'
+            new_name: 'Kalium'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Harnstoff'
+            method: 'first'
+            new_name: 'Harnstoff'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Glukose'
+            method: 'first'
+            new_name: 'Glukose'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Chlorid'
+            method: 'first'
+            new_name: 'Chlorid'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Phosphat'
+            method: 'first'
+            new_name: 'Phosphat'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Albumin'
+            method: 'first'
+            new_name: 'Albumin'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Kalzium_gesamt'
+            method: 'first'
+            new_name: 'Kalzium_gesamt'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_INR'
+            method: 'first'
+            new_name: 'INR'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Bilirubin_gesamt'
+            method: 'first'
+            new_name: 'Bilirubin_gesamt'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Alkalische_Phosphatase'
+            method: 'first'
+            new_name: 'Alkalische_Phosphatase'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_FIO2'
+            method: 'first'
+            new_name: 'Blutgase_FIO2'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_paCO2'
+            method: 'first'
+            new_name: 'Blutgase_paCO2'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_paO2'
+            method: 'first'
+            new_name: 'Blutgase_paO2'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Laktat'
+            method: 'first'
+            new_name: 'Laktat'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_O2_Saettigung'
+            method: 'first'
+            new_name: 'Blutgase_O2_Saettigung'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Lipase'
+            method: 'first'
+            new_name: 'Lipase'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Gesamtprotein'
+            method: 'first'
+            new_name: 'Gesamtprotein'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_pH'
+            method: 'first'
+            new_name: 'Urin_pH'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_Glukose'
+            method: 'first'
+            new_name: 'Urin_Glukose'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_HB'
+            method: 'first'
+            new_name: 'Urin_HB'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_Ketonkoerper'
+            method: 'first'
+            new_name: 'Urin_Ketonkoerper'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_Nitrit'
+            method: 'first'
+            new_name: 'Urin_Nitrit'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_Sediment_Leukozyten'
+            method: 'first'
+            new_name: 'Urin_Sediment_Leukozyten'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_LDH'
+            method: 'first'
+            new_name: 'LDH'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Fibrinogen'
+            method: 'first'
+            new_name: 'Fibrinogen'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Gamma_GT'
+            method: 'first'
+            new_name: 'Gamma_GT'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Amylase'
+            method: 'first'
+            new_name: 'Amylase'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_pH'
+            method: 'first'
+            new_name: 'Blutgase_pH'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_CKMB'
+            method: 'first'
+            new_name: 'CKMB'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_Leukozyten'
+            method: 'first'
+            new_name: 'Leukozyten'
+          - columns:
+              - 'dwh.Labor_KCBU.Blutgase_Base_Excess'
+            method: 'first'
+            new_name: 'Blutgase_Base_Excess'
+          - columns:
+              - 'dwh.Labor_KCBU.Urin_Sediment_Bakterien'
+            method: 'first'
+            new_name: 'Urin_Sediment_Bakterien'
+          - columns:
+              - 'dwh.Labor_KCBU.KC_HbA1c'
+            method: 'first'
+            new_name: 'HbA1c'
+
+      - name: 'dwh Labor Blutgruppe'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'Blutgruppe'
+        columns_to_clean:
+          - 'Blutgruppe'
+        replace_values:
+          - 'nicht auswertbar'
+          - 'nicht getestet'
+        group_by_columns:
+          - 'SPM_ID'
+        first_valid_columns:
+          - 'Blutgruppe'
+
+      - name: 'dwh Labor Virologie'
+        columns_to_keep:
+          - 'SPM_ID'
+          - 'dwh.Labor_Virologie.Anti_CMV_IgG'
+        columns_to_clean:
+          - 'dwh.Labor_Virologie.Anti_CMV_IgG'
+        replace_values:
+          - 'nicht auswertbar'
+          - 'nicht getestet'
+        group_by_columns:
+          - 'SPM_ID'
+        first_valid_columns:
+          - 'dwh.Labor_Virologie.Anti_CMV_IgG'
+
+  - name: 'Trans_20_24'
+    sheets:
+      - name: 'dwh Transplantat'
+        columns_to_keep:
+          - 'dwh.Transplantat.Status_Transplantat'
+          - 'dwh.Transplantat.Transplantat'
+        method: 'transplantiert_oder_nicht'
+
+encode:
+  one_hot: 
+    - "Blutgruppe"
+    - "dwh.Labor_Virologie.Anti_CMV_IgG"
+  posnegmiss:
+    - "dwh.Labor_KCBU.Urin_Glukose_first_value"
+    - "dwh.Labor_KCBU.Urin_Nitrit_first_value"
+    - "dwh.Labor_KCBU.Urin_Sediment_Leukozyten_first_value"
+    - "dwh.Labor_KCBU.Urin_Sediment_Bakterien_first_value"
+    - "dwh.Labor_KCBU.Urin_HB_first_value"
+    - "dwh.Labor_KCBU.Urin_Ketonkoerper_first_value"
+  binary:
+    - name: "dwh.Spender.Spender_Geschlecht"
+      positive: "weiblich"
+      negative: "männlich"
+  binary_emptyornot:
+    - "Hypotension_Diagnose"
+    - "Diabetes_Diagnose"
+    - "Hepatitis_C_Diagnose"
+    - "Drogen_Diagnose"
+    - "Reanimation_Diagnose"
+  icd:
+    - 'Tod_ICD_10_Code'
+
+impute:
+  - name: 'dwh.Labor_KCBU.KC_Kreatinin_min_value'
+    method: 'median'
+  - name: 'Diurese_24h_kgKG'
+    method: 'median'  
+  - name: 'dwh.Labor_KCBU.KC_Haematokrit_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Thrombozyten_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Natrium_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Kalium_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Harnstoff_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Glukose_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Chlorid_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Phosphat_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Albumin_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Kalzium_gesamt_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_INR_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Bilirubin_gesamt_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Alkalische_Phosphatase_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_FIO2_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_paCO2_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_paO2_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Laktat_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_O2_Saettigung_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Gesamtprotein_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Lipase_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Urin_pH_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_LDH_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Fibrinogen_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Gamma_GT_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Amylase_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_pH_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_CKMB_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_Leukozyten_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.Blutgase_Base_Excess_first_value'
+    method: 'nv'
+  - name: 'dwh.Labor_KCBU.KC_HbA1c_first_value'
+    method: 'nv'
+
+create:
+  - name: 'Diurese_24h_kgKG'
+    method: 'norm_stand'
+    method2: 'norm'
+    zaehler: 'dwh.Monitoring.Diurese_Menge'
+    nenner: 'dwh.Monitoring.Diurese_Stunden'
+    factor: 24
+    stand_with: 'dwh.Spender.Spender_Gewicht'
+  - name: 'Reanimation_Dauer'
+    method: 'reanimationdauer'
+
+drop: 
+  - 'dwh.Spender.Spender_Gewicht'
+  - 'Diabetes_Diagnose_Zeitpunkt_von'
+  - 'Diabetes_Diagnose_Zeitpunkt_bis'
+  - 'Hepatitis_C_Diagnose_Zeitpunkt_von'
+
+scale:
+  - name: 'dwh.Labor_KCBU.KC_Kreatinin_min_value' # this is correct for kc kreatinin, but urin kreatinin is mg/l to g/l  (*1000)
+    method: 'µmol/L_to_mg/dL'
+
+rename:
+  dwh.Spender.Spender_Alter: 'Alter'
+  dwh.Spender.Spender_Geschlecht: 'Geschlecht'
+  dwh.Spender.Spender_BMI: 'BMI'
+  Hypotension_Diagnose: 'Hypotension'
+  Diabetes_Diagnose: 'Diabetes'
+  Hepatitis_C_Diagnose: 'Hepatitis_C'

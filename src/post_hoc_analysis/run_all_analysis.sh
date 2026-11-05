@@ -1,0 +1,4 @@
+python3 run_thresholds.py
+python3 run_calibration.py
+python3 run_optimism_comp.py
+python3 run_visualization.py

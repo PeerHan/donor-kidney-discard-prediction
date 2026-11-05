@@ -7,7 +7,7 @@ import numpy as np
 
 from xgboost import XGBClassifier
 from torch import nn
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -65,7 +65,7 @@ def create_model(trial, input_feats, output_feats):
 
     return nn.Sequential(*layers)
 
-def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **kwargs): # pylint: disable=R0913, R0914, R0917
+def mlp_objective(trial, x, y, n_splits=5, random_state=42, show_every=None, **kwargs): # pylint: disable=R0913, R0914, R0917
     """
     Objective to train a MLP involving the MLP Model HPs and other HPs:
     - weight_decay: 1e-10 - 1e-6 (log)
@@ -83,7 +83,7 @@ def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **
     if isinstance(y, np.ndarray):
         y = pd.Series(y)
 
-    kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
     batch_size = 512
     weight_decay = trial.suggest_float("weight_decay", high=1e-6, low=1e-10, log=True)
     init_lr = trial.suggest_float("init_lr", high=1e-1, low=1e-4, log=True)
@@ -96,12 +96,14 @@ def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **
     input_feats = x.shape[1]
     output_feats = np.unique(y).shape[0]
     average_mcc = []
-    for train_indices, val_indices in kf.split(x):
+    for train_indices, val_indices in kf.split(x, y):
         torch.manual_seed(random_state)
         x_train = x.iloc[train_indices].reset_index(drop=True)
         y_train = y[train_indices].reset_index(drop=True)
         x_val = x.iloc[val_indices].reset_index(drop=True)
         y_val = y[val_indices].reset_index(drop=True)
+        x_train, x_es, y_train, y_es = (d.reset_index(drop=True) for d in train_test_split(
+            x_train, y_train, test_size=0.1, stratify=y_train, random_state=random_state))
         class_weights = compute_class_weight(class_weight="balanced",
                                              classes=np.unique(y_train),
                                              y=y_train)
@@ -110,8 +112,10 @@ def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **
         trainset = TorchDataSet(x_train, y_train)
         train_scaler = trainset.scaler
         valset = TorchDataSet(x_val, y_val, train_scaler)
+        early_stop_set = TorchDataSet(x_es, y_es, train_scaler)
         train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, drop_last=True)
         val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False)
+        es_loader = DataLoader(early_stop_set, batch_size=batch_size, shuffle=False)
         model = create_model(trial, input_feats=input_feats, output_feats=output_feats)
         model.apply(initialize_weights)
 
@@ -120,7 +124,7 @@ def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **
         train_model(model=model,
                     optimizer=optimizer,
                     train_loader=train_loader,
-                    val_loader=val_loader,
+                    val_loader=es_loader,
                     criterion=criterion,
                     temp_weight_tag=kwargs["weight_tag"],
                     device=device,
@@ -131,7 +135,7 @@ def mlp_objective(trial, x, y, n_splits=5, random_state=420, show_every=None, **
         average_mcc.append(mcc_val)
     return np.mean(average_mcc)
 
-def dt_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint: disable=W0613
+def dt_objective(trial, x, y, n_splits=5, random_state=42, **kwargs): # pylint: disable=W0613
     """
     Objective to train a DT involving the DT HPs and other HPs:
     - max_depth: 1-50
@@ -141,7 +145,7 @@ def dt_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint:
     - class_weight: balanced dataset or None
     """
 
-    kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
 
     max_depth = trial.suggest_int("max_depth", 1, 50)
     min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
@@ -164,7 +168,7 @@ def dt_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint:
     return np.mean(average_mcc)
 
 
-def rf_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint: disable=W0613, R0914
+def rf_objective(trial, x, y, n_splits=5, random_state=42, **kwargs): # pylint: disable=W0613, R0914
     """
     Objective to train a RF involving the RF HPs and other HPs:
     - n_estimators: 10-200
@@ -175,7 +179,7 @@ def rf_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint:
     - class_weight: balanced dataset or None
     """
 
-    kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
 
     n_estimators = trial.suggest_int("n_estimators", 10, 500)
     max_depth = trial.suggest_int("max_depth", 1, 50)
@@ -200,7 +204,7 @@ def rf_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint:
 
     return np.mean(average_mcc)
 
-def lr_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint: disable=W0613
+def lr_objective(trial, x, y, n_splits=5, random_state=42, **kwargs): # pylint: disable=W0613
     """
     Objective to train a RF involving the RF HPs and other HPs:
     - C: 0.01-10
@@ -209,9 +213,9 @@ def lr_objective(trial, x, y, n_splits=5, random_state=420, **kwargs): # pylint:
     - l1_ration: percentage mixing between l1 and l2
     """
 
-    kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
 
-    c = trial.suggest_float('C', 0.01, 100)
+    c = trial.suggest_float('C', 1e-3, 10, log=True)
     class_weight = trial.suggest_categorical('class_weight', [None, 'balanced'])
     l1_ratio = trial.suggest_float('l1_ratio', 0, 1)
 
@@ -325,7 +329,7 @@ def xgb_objective( # pylint: disable=R0914
         x,
         y,
         n_splits=5,
-        random_state=420,
+        random_state=42,
         **kwargs # pylint: disable=W0613
     ):
     """
@@ -349,7 +353,7 @@ def xgb_objective( # pylint: disable=R0914
     if isinstance(y, np.ndarray):
         y = pd.Series(y)
 
-    kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
+    kf = StratifiedKFold(n_splits=n_splits, random_state=random_state, shuffle=True)
 
     param = {
         'tree_method': trial.suggest_categorical(
@@ -387,11 +391,13 @@ def xgb_objective( # pylint: disable=R0914
     }
     use_class_weights = bool(trial.suggest_int("use_class_weights", 0, 1))
     average_mcc = []
-    for train_indices, val_indices in kf.split(x):
+    for train_indices, val_indices in kf.split(x, y):
         x_train = x.iloc[train_indices].reset_index(drop=True)
         y_train = y[train_indices].reset_index(drop=True)
         x_val = x.iloc[val_indices].reset_index(drop=True)
         y_val = y[val_indices].reset_index(drop=True)
+        x_train, x_es, y_train, y_es = train_test_split(x_train, y_train, test_size=0.1,
+                                                    stratify=y_train, random_state=random_state)
         if use_class_weights:
             weight = y_train.value_counts()[0] / y_train.value_counts()[1]
             param["scale_pos_weight"] = weight
@@ -399,7 +405,8 @@ def xgb_objective( # pylint: disable=R0914
         scaler = StandardScaler()
         x_train = scaler.fit_transform(x_train)
         x_val = scaler.transform(x_val)
-        model.fit(x_train,y_train,eval_set=[(x_val,y_val)],verbose=False)
+        x_es = scaler.transform(x_es)
+        model.fit(x_train,y_train,eval_set=[(x_es,y_es)],verbose=False)
         preds = model.predict(x_val)
         mcc = matthews_corrcoef(y_val, preds)
         average_mcc.append(mcc)
@@ -415,7 +422,7 @@ def create_xgb_from_result( # pylint: disable=W0102
                  'params_learning_rate', 'params_subsample', 'params_colsample_bytree',
                  'params_reg_alpha', 'params_reg_lambda'],
     n_jobs=-1,
-    random_state=420,
+    random_state=42,
     best_k=0,
     **kwargs # pylint: disable=W0613
     ):
@@ -466,7 +473,7 @@ def create_dt_from_result( # pylint: disable=W0102
         dataframe,
         tuned_feats=['params_max_depth', 'params_min_samples_split',
                      'params_min_samples_leaf', 'params_max_features', 'params_class_weight'],
-        random_state=420,
+        random_state=42,
         best_k=0,
         **kwargs # pylint: disable=W0613
         ):
@@ -511,7 +518,7 @@ def create_rf_from_result( # pylint: disable=W0102
         dataframe,
         tuned_feats=['params_n_estimators', 'params_max_depth', 'params_min_samples_split',
                      'params_min_samples_leaf', 'params_max_features', 'params_class_weight'],
-        random_state=420,
+        random_state=42,
         best_k=0,
         **kwargs # pylint: disable=W0613
         ):
@@ -559,7 +566,7 @@ def create_rf_from_result( # pylint: disable=W0102
 def create_lr_from_result( # pylint: disable=W0102
         dataframe,
         tuned_feats=['params_C', 'params_class_weight', 'params_l1_ratio'],
-        random_state=420,
+        random_state=42,
         best_k=0,
         **kwargs # pylint: disable=W0613
         ):

@@ -13,14 +13,14 @@ def main():
     data_dir = os.getenv("FEATURE_DIR")
     model_dir = os.getenv("MODEL_RESULTS")
     fes = [
-           "paper-free"
+           "FS"
            ]
     for fe in fes:
-        print(fe)
+        print(fe, data_dir, model_dir)
         data_ensemble = DataEnsemble(feature_set=fe,
                                    path_to_data=data_dir,
                                    path_to_models=model_dir)
-        data_ensemble.evaluate_ensemble(n_predictions=2)
+        data_ensemble.evaluate_ensemble(n_predictions=1)
 
 
 if __name__ == "__main__":

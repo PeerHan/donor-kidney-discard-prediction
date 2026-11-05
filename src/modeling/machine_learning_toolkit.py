@@ -378,7 +378,7 @@ def fit_and_eval_sklearn(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
                          y_test,
                          path_to_folder,
                          n_predictions=30,
-                         logging_active=True,
+                         logging_active=False,
                          **kwargs):
     """
     Retrain with different Random Seeds to generate Test-Eval Distribution
@@ -417,7 +417,8 @@ def fit_and_eval_sklearn(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
         scaler = StandardScaler()
         x_train, x_val, y_train, y_val = train_test_split(x_train,
                                                           y_train,
-                                                          test_size=0.1,
+                                                          test_size=0.15,
+                                                          stratify=y_train,
                                                           random_state=42)
         if kwargs["model"] == "XGB":
 
@@ -429,6 +430,7 @@ def fit_and_eval_sklearn(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
             model.fit(x_train_scaled,y_train,eval_set=[(x_val_scaled,y_val)],verbose=False)
         else:
             x_train_scaled = scaler.fit_transform(x_train)
+            x_val_scaled = scaler.transform(x_val)
             model.fit(x_train_scaled, y_train)
         x_test_scaled = scaler.transform(x_test)
         f1_test, mcc_test, precision, recall, targets, preds, probs = \
@@ -452,6 +454,10 @@ def fit_and_eval_sklearn(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
                 pickle.dump(scaler, file)
             os.makedirs(path_to_folder, exist_ok=True)
             joblib.dump(model, f"{path_to_folder}/{kwargs['model']}.pkl")
+            _, _, _, _, val_targets, val_preds, val_probs = test_dt(model, x_val_scaled, y_val)
+            val_prob_df = pd.DataFrame(val_probs, columns=[f"Prob_{cat}" for cat in range(len(y_test.unique()))])
+            val_prob_df["Targets"] = val_targets.values
+            val_prob_df["Prediction"] = val_preds
 
         if logging_active:
             mfl.start_run("model_test")
@@ -491,6 +497,7 @@ def fit_and_eval_sklearn(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
     prob_df["Prediction"] = best_preds
     prob_df.to_csv(f"{path_to_folder}/{kwargs['model']}_predictions.csv", index=False)
     metric_df.to_csv(f"{path_to_folder}/{kwargs['model']}_metrics.csv", index=False)
+    val_prob_df.to_csv(f"{path_to_folder}/{kwargs['model']}_val_predictions.csv", index=False)
 
     best_x_features = 10
 
@@ -553,7 +560,7 @@ def fit_and_eval_mlp(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
                      y_test,
                      path_to_folder,
                      n_predictions=30,
-                     logging_active=True,
+                     logging_active=False,
                      **kwargs):
     """
     Retrain with different Random Seeds to generate Test-Eval Distribution
@@ -574,7 +581,8 @@ def fit_and_eval_mlp(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
 
     x_train, x_val, y_train, y_val = train_test_split(x_train,
                                                       y_train,
-                                                      test_size=0.1,
+                                                      stratify=y_train,
+                                                      test_size=0.15,
                                                       random_state=42)
     x_train = x_train.reset_index(drop=True)
     y_train = y_train.reset_index(drop=True)
@@ -657,6 +665,14 @@ def fit_and_eval_mlp(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
             os.makedirs(path_to_folder, exist_ok=True)
             model = model.to("cpu")
             torch.save(model.state_dict(), f"{path_to_folder}/MLP.pt")
+            _, _, _, _, val_targets, val_preds, val_probs = test_model(model,
+                                                           val_loader,
+                                                           device=device,
+                                                           num_classes=np.unique(y_train).shape[0],
+                                                           return_softmax=True)
+            val_prob_df = pd.DataFrame(val_probs, columns=[f"Prob_{cat}" for cat in range(len(y_test.unique()))])
+            val_prob_df["Targets"] = val_targets
+            val_prob_df["Prediction"] = val_preds
 
         if logging_active:
             mfl.start_run("model_test")
@@ -682,5 +698,6 @@ def fit_and_eval_mlp(res, # pylint: disable=R0913,R0914,R0917, R0912, R0915
     prob_df["Prediction"] = best_preds
     prob_df.to_csv(f"{path_to_folder}/MLP_predictions.csv", index=False)
     metric_df.to_csv(f"{path_to_folder}/MLP_metrics.csv", index=False)
+    val_prob_df.to_csv(f"{path_to_folder}/MLP_val_predictions.csv", index=False)
 
     return best_f1, mcc_test, precision, recall, best_cm

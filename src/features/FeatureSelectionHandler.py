@@ -47,8 +47,7 @@ class FeatureSelectionHandler:
     def get_cv_score(self,
                     trial,
                     n_trials=10,
-                    n_splits=3,
-                    sampler=RandomSampler(seed=42)):
+                    n_splits=3):
         """
         Manages HP Optimization in Feature Selection. Returns loss of feature selection. 
         
@@ -81,8 +80,8 @@ class FeatureSelectionHandler:
         # Start HP-Tuning and Feature Selection from OptunaHandler
         handler = OptunaHandler(self.x[selected_feature_names], self.y,
                                 self.model, logging_active=False)
-        handler.tune_model(n_trials,n_splits, sampler, device= 'cpu'
-                           if self.model!='mlp' else 'cuda')
+        handler.tune_model(n_trials, n_splits, RandomSampler(seed=42),
+                            device="cpu" if self.model != "mlp" else "cuda")
         trial_df = handler.model_df
         loss = -trial_df.loc[0,'MCC']
 
@@ -94,7 +93,6 @@ class FeatureSelectionHandler:
                         save_dir,
                         hp_trials=10,
                         hp_splits=3,
-                        sampler= NSGAIISampler(seed=42,population_size=50),
                         n_trials=1000,
                         n_jobs=-1):
         """
@@ -110,6 +108,7 @@ class FeatureSelectionHandler:
         - n_trials (int): Number of trials for Feature Selection
         - n_jobs (int): Number of CPU cores to work in parallel (all = -1)        
         """
+        sampler = NSGAIISampler(seed=42, population_size=50) 
         study = optuna.create_study(direction="minimize",sampler=sampler)
         default_features = {ft: True for ft in self.x.columns}
         study.enqueue_trial(default_features)
@@ -134,7 +133,7 @@ class FeatureSelectionHandler:
 
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        trial_df.to_csv(f"{model_dir}/{self.label}_df.csv", index=False)
-        joblib.dump(study, f"{model_dir}/{self.label}_study.pkl")
 
+        trial_df.to_csv(f"{save_dir}/{self.model.upper()}/{self.label}_fs_df.csv", index=False)
+        joblib.dump(study, f"{save_dir}/{self.model.upper()}/{self.label}_fs_study.pkl")
         return best_columns

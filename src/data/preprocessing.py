@@ -19,9 +19,6 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version.
 pd.set_option('future.no_silent_downcasting', True)
 
-
-
-
 # Preprocessor Object
 class DataPreprocessor:
     def __init__(self, target='Transplantationsstatus'):
@@ -36,6 +33,7 @@ class DataPreprocessor:
         self.dcf = None # Store DropConstantFeatures for test columns
         self.ddf = None # Store DropDuplicateFeatures for test columns
         self.dfc = None # Store DropFeaturesWithConstantValues for test columns
+        self.train_values = {}
 
         load_dotenv(override=True)
         self.FEATURE_DIR = os.getenv("FEATURE_DIR")
@@ -538,11 +536,14 @@ class DataPreprocessor:
         def impute_column(col):
             method = col['method']
             col_name = col['name']
+            if is_train:
+                self.train_values[col_name] = df[col_name].dropna()
+            ref = self.train_values[col_name]
             if method == 'median':
-                df[col_name] = np.where(df[col_name].isna(), df[col_name].median(), df[col_name])
+                df[col_name] = np.where(df[col_name].isna(), ref.median(), df[col_name])
             elif method == 'nv':
                 missing_indices = df[col_name][df[col_name].isna()].index
-                imputed_values = self.sample_normal_from_column(df[col_name].dropna(), len(missing_indices))
+                imputed_values = self.sample_normal_from_column(ref, len(missing_indices))
                 df.loc[missing_indices, col_name] = imputed_values
 
         if impute_config:

@@ -29,7 +29,7 @@ class OptunaHandler:
     The study object can also be stored as pickle file.
     """
 
-    def __init__(self, x, y, algorithm, logging_active=True):
+    def __init__(self, x, y, algorithm, logging_active=False):
         """
         Parameters:
             - x: Training data which should be split in Train and Validation
@@ -125,8 +125,8 @@ class OptunaHandler:
                                                              device=kwargs["device"],
                                                              weight_tag=kwargs["weight_tag"]),
                                                              n_trials=n_trials)
-
-        self.log_trials(study.trials, self.x_orig, self.y_orig)
+        if self.logging_active:
+            self.log_trials(study.trials, self.x_orig, self.y_orig)
 
         if save_study:
             joblib.dump(study, save_study)
@@ -180,7 +180,7 @@ class OptunaHandler:
         return model
 
     def test_evaluation(self, x_test, y_test, path_to_folder, # pylint: disable=R0913, R0914, R0917
-                        iterations=30, logging_active=True, **kwargs):
+                        iterations=1, logging_active=False, **kwargs):
         """
         Method to Evaluate a trained (fitted) ML Algorithm on a extern Testset
         The model is trained with n different random states (can be configured in iterations)
@@ -229,13 +229,13 @@ class OptunaHandler:
                     cmap="viridis",
                     annot=True,
                     fmt=".0f",
-                    xticklabels=["Nicht Transplantiert", "Transplantiert"],
-                    yticklabels=["Nicht Transplantiert", "Transplantiert"],
+                    xticklabels=["Not Transplanted", "Transplanted"],
+                    yticklabels=["Not Transplanted", "Transplanted"],
                     annot_kws={"fontsize":30})
         plt.xticks(fontsize=15)
         plt.yticks(fontsize=15)
-        plt.xlabel("Vorhersage", fontsize=20)
-        plt.ylabel("Echtes Label", fontsize=20)
-        plt.title(f"{self.algorithm} Performance auf dem Testdatensatz\n" +
-                  f"F1 Score: {f1_test:.2} | Normed MCC: {((1 + mcc_test) / 2):.2}")
+        plt.xlabel("Prediction", fontsize=20)
+        plt.ylabel("Target", fontsize=20)
+        plt.title(f"{self.algorithm} Test Performance\n" +
+                  f"F1 Score: {f1_test:.2} | MCC: {mcc_test:.2}")
         plt.savefig(f"{path_to_folder}/{self.algorithm}_cm.png", bbox_inches="tight", dpi=250)

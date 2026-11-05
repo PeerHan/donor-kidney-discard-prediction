@@ -41,9 +41,9 @@ parser.add_argument("-y", "--target", type=str,
 parser.add_argument("-tsf", "--test_file", type=str,
                     help="Path to Test Features (csv File same as Training File)",
                     required=True)
-parser.add_argument("-i", "--iterations", type=int, default=30,
+parser.add_argument("-i", "--iterations", type=int, default=1,
                     help="Iterations for amount of random seeded retraining cycles\n" +
-                    "Default = 30")
+                    "Default = 1")
 parser.add_argument("-d", "--device", type=str, default="cpu",
                     help="Specify if cuda or cpu should be used for mlp")
 parser.add_argument('-s','--shap', type=bool,
@@ -63,17 +63,24 @@ use_shap = args.shap
 fs = args.feature_set
 
 train_df = pd.read_csv(args.train_file)
+if "dwh.Medikation.heparinoide" in list(train_df.columns):
+    print("Removing Hepa Col")
+    train_df = train_df.drop(["dwh.Medikation.heparinoide"], axis=1)
+
 if "SPM_ID" in list(train_df.columns):
-    train_df = train_df.drop("SPM_ID", axis=1)
+    train_df = train_df.drop(["SPM_ID"], axis=1)
 train_df.columns = [col.replace("dwh.Spender.Spender_", "") \
                     if "dwh.Spender.Spender_" in col else col for col in list(train_df.columns)]
 
 test_df = pd.read_csv(args.test_file)
+if "dwh.Medikation.heparinoide" in list(test_df.columns):
+    print("Removing Hepa Col")
+    test_df = test_df.drop(["dwh.Medikation.heparinoide"], axis=1)
+
 if "SPM_ID" in list(test_df.columns):
-    test_df = test_df.drop("SPM_ID", axis=1)
+    test_df = test_df.drop(["SPM_ID"], axis=1)
 test_df.columns = [col.replace("dwh.Spender.Spender_", "") \
                    if "dwh.Spender.Spender_" in col else col for col in list(test_df.columns)]
-
 
 rename_benchmark = {"dwh.Spender.Spender_Geschlecht" : "Geschlecht",
                     "dwh.Spender.Spender_Alter" : "Alter",

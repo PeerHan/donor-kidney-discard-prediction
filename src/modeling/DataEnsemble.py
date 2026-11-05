@@ -66,10 +66,12 @@ class DataEnsemble:
         self.feature_set = feature_set
 
         path_to_data = path_to_data + "/"+ feature_set + "/"
+
         self.train_dfs = {algo : pd.read_csv(path_to_data + f"{algo}/" + 'train.csv')\
                             for algo in algos + ["MLP"]}
         self.test_dfs = {algo : pd.read_csv(path_to_data + f"{algo}/" + 'test.csv')\
                             for algo in algos + ["MLP"]}
+
         for algo, _ in self.train_dfs.items():
             train_df = self.train_dfs[algo]
             test_df = self.test_dfs[algo]
@@ -191,8 +193,9 @@ class DataEnsemble:
         to predict on the test data.
 
         The results are saved under
-        path/model_results/DE/DE_metrics.csv and
-        path/model_Results/DE/DE_predictions.csv
+        path/model_results/DE/DE_metrics.csv,
+        path/model_Results/DE/DE_predictions.csv (test set) and
+        path/model_Results/DE/DE_val_predictions.csv (validation split, same seed)
 
         Parameters:
          - n_predictions: Amount of random seeds
@@ -207,6 +210,8 @@ class DataEnsemble:
         }
 
         res_probs = {}
+        res_val = {}
+        targets = {}
 
         for algo in ["RF", "LR", "XGB", "MLP"]:
             print(f"Evaluating {algo}")
@@ -224,6 +229,16 @@ class DataEnsemble:
                 x_train, y_train = self.df_train.copy(), self.target_train.copy()
                 x_test, y_test = self.df_test.copy(), self.target_test.copy()
 
+            x_train, x_val, y_train, y_val = train_test_split(x_train,
+                                                              y_train,
+                                                              test_size=0.15,
+                                                              stratify=y_train,
+                                                              random_state=42)
+            x_train, x_val, x_test = (x.reset_index(drop=True) for x in (x_train, x_val, x_test))
+            y_train, y_val, y_test = (y.reset_index(drop=True) for y in (y_train, y_val, y_test))
+            res_val[algo] = {}
+            targets[algo] = (y_val.to_numpy(), y_test.to_numpy())
+
             if algo != "MLP":
 
                 for state in range(n_predictions):
@@ -234,38 +249,23 @@ class DataEnsemble:
                     model = res["model"]
                     model.random_state = state
                     scaler = StandardScaler()
-                    x_train, x_val, y_train, y_val = train_test_split(x_train,
-                                                                    y_train,
-                                                                    test_size=0.1,
-                                                                    random_state=42)
+                    x_train_s = scaler.fit_transform(x_train)
+                    x_val_s = scaler.transform(x_val)
+                    x_test_s = scaler.transform(x_test)
                     if algo == "XGB":
-                        x_train = scaler.fit_transform(x_train)
-                        x_val = scaler.transform(x_val)
                         if res["use_class_weights"]:
                             weight = y_train.value_counts()[0] / y_train.value_counts()[1]
                             model.scale_pos_weight = weight
-                        model.fit(x_train,y_train,eval_set=[(x_val,y_val)],verbose=False)
+                        model.fit(x_train_s, y_train, eval_set=[(x_val_s, y_val)], verbose=False)
                     else:
-                        x_train = scaler.fit_transform(x_train)
-        
                         if pd.isna(model.class_weight):
                             model.class_weight = None
-                        model.fit(x_train, y_train)
-                    x_test = scaler.transform(x_test)
-                    _, _, _, _, _, _, probs = test_dt(model, x_test, y_test)
+                        model.fit(x_train_s, y_train)
+                    _, _, _, _, _, _, probs = test_dt(model, x_test_s, y_test)
                     res_probs[algo][state] = probs
+                    _, _, _, _, _, _, res_val[algo][state] = test_dt(model, x_val_s, y_val)
             else:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                x_train, x_val, y_train, y_val = train_test_split(x_train,
-                                                                  y_train,
-                                                                  test_size=0.1,
-                                                                  random_state=42)
-                x_train = x_train.reset_index(drop=True)
-                y_train = y_train.reset_index(drop=True)
-                x_test= x_test.reset_index(drop=True)
-                y_test = y_test.reset_index(drop=True)
-                x_val = x_val.reset_index(drop=True)
-                y_val = y_val.reset_index(drop=True)
                 model_funct = model_map[algo]
                 res = model_funct(model_df,
                                  input_feats=x_train.shape[1],
@@ -277,6 +277,7 @@ class DataEnsemble:
                 test_dataset = TorchDataSet(x_test, y_test, train_scaler)
                 for state in range(n_predictions):
                     print(f"Random state: {state}")
+                    torch.manual_seed(state)
                     model = res["model"]
                     model.apply(initialize_weights)
                     optimizer = torch.optim.AdamW(model.parameters(),
@@ -311,13 +312,28 @@ class DataEnsemble:
                                                          num_classes=np.unique(y_train).shape[0],
                                                          return_softmax=True)
                     res_probs[algo][state] = probs
+                    _, _, _, _, _, _, res_val[algo][state] = test_model(
+                        model,
+                        val_loader,
+                        device=device,
+                        num_classes=np.unique(y_train).shape[0],
+                        return_softmax=True)
+
+        y_val, y_test = targets["RF"]
+        for algo, (algo_y_val, algo_y_test) in targets.items():
+            if not (np.array_equal(algo_y_val, y_val) and np.array_equal(algo_y_test, y_test)):
+                raise ValueError(f"{algo}: validation/test rows differ from RF - the train.csv / "
+                                 "test.csv files need the same rows in the same order")
+
         seed_prob_dict = {seed : [] for seed in range(len(res_probs["RF"]))}
+        seed_val_dict = {seed : [] for seed in range(len(res_probs["RF"]))}  # NEW
 
         for algo, seed_dict in res_probs.items():
 
             for seed, probs in seed_dict.items():
                 prob_df = pd.DataFrame(probs)
                 seed_prob_dict[seed].append(prob_df)
+                seed_val_dict[seed].append(pd.DataFrame(res_val[algo][seed]))  # NEW
 
         ensemble_res = {}
         best_mcc = 0
@@ -325,7 +341,8 @@ class DataEnsemble:
             ensemble_res[seed] = {}
 
             seed_df = sum(dfs) / len(dfs)
-            preds = seed_df[1] >= 0.5
+            val_df = sum(seed_val_dict[seed]) / len(seed_val_dict[seed])  # NEW
+            preds = (seed_df[1] > 0.5).astype(int)
             prob_df = seed_df.copy()
             prob_df["Targets"] = y_test
             prob_df["Prediction"] = preds
@@ -339,6 +356,10 @@ class DataEnsemble:
                 best_mcc = ensemble_res[seed]["Normed MCC Test"]
                 prob_df = prob_df.rename({0 : "Prob_0", 1 : "Prob_1"}, axis=1)
                 prob_df.to_csv(f"{self.path_to_models}DE/DE_predictions.csv", index=False)
+                val_df = val_df.rename({0 : "Prob_0", 1 : "Prob_1"}, axis=1)
+                val_df["Targets"] = y_val
+                val_df["Prediction"] = (val_df["Prob_1"] > 0.5).astype(int)
+                val_df.to_csv(f"{self.path_to_models}DE/DE_val_predictions.csv", index=False)
                 plt.figure(figsize=(8, 8), dpi=250)
                 sns.set_style("darkgrid")
                 cm_test = confusion_matrix(y_true=y_test, y_pred=preds)

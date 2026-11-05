@@ -62,15 +62,11 @@ Analogous artifacts can be created for the ensemble model using:
 python3 -m src.modeling.eval_de
 ```
 
-## Post-Calibration
-Execute the calibration using the following command:
+## Post-Hoc Analysis, Calibration and visualization
+Run the following command for all post-hoc analysis including calibration and the estimation of confidence intervals.
+All corresponding files must be included in the respective folder.
 ```
-bash src/modeling/calibration.sh 
+bash src/post_hoc_analysis/run_all_analysis.sh
 ```
-All calibration artifacts are contained in the respective model folder.
 
-## Visualization
-The following script will create an Img folder within the MODEL_RESULTS folder containing further plots showing the discriminative results:
-```
-python3 src/visualize_results.py
-```
+All resulting artifacts of the post-hoc analysis can be assessed under zenodo including all output files and figures:

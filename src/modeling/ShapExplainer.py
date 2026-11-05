@@ -56,6 +56,7 @@ class ShapExplainer: # pylint: disable=R0902
         #assert algorithm in ["mlp", "dt", "lr", "rf", "xgb"]
         #assert feature_set in ["nlp", "benchmark", "domain", "exploration"]
         self.model_dir = model_dir
+
         if "SPM_ID" in x_train.columns:
             x_train = x_train.drop(columns=["SPM_ID"])
         if "SPM_ID" in x_test.columns:

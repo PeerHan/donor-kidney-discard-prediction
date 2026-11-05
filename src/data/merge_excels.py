@@ -958,7 +958,7 @@ class DataMerger:
 
         # Remove date columns and drop rows that are missing specific values based on expert advice
         df = df.drop(columns=[col for col in df.columns if col.endswith("Untersuchungsdatum")])
-        df = self.drop_rows_with_empty(df) #TODO: check
+        df = self.drop_rows_with_empty(df)
 
         # Save results
         print('Saving Data...')

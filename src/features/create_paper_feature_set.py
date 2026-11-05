@@ -55,9 +55,16 @@ n_jobs = args.jobs
 penalty = args.penalty
 
 train_df = pd.read_csv(args.train_file)
-
+print(args.train_file)
 test_file = args.train_file.replace("train","test")
 test_df = pd.read_csv(test_file)
+
+if "dwh.Medikation.heparinoide" in list(train_df.columns):
+    print("Removing Hepa Col")
+    train_df = train_df.drop(["dwh.Medikation.heparinoide"], axis=1)
+if "dwh.Medikation.heparinoide" in list(test_df.columns):
+    print("Removing Hepa Col")
+    test_df = test_df.drop(["dwh.Medikation.heparinoide"], axis=1)
 
 if "SPM_ID" in train_df.columns:
     train_df = train_df.drop(columns="SPM_ID", axis=1)

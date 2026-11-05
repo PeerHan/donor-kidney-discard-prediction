@@ -70,3 +70,18 @@ bash src/post_hoc_analysis/run_all_analysis.sh
 ```
 
 All resulting artifacts of the post-hoc analysis can be assessed under zenodo including all output files and figures:
+```
+@dataset{schliephacke_2026_23929752,
+  author       = {Schliephacke, Peer},
+  title        = {Predicting Discard of Both Kidneys From Deceased
+                   Donors Using Machine Learning: Model Development
+                   and Comparison Study
+                  },
+  month        = nov,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {Version1},
+  doi          = {10.5281/zenodo.23929752},
+  url          = {https://doi.org/10.5281/zenodo.23929752},
+}
+```
